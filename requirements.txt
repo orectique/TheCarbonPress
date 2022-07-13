@@ -1,0 +1,7 @@
+tweepy
+newsapi 
+dotenv
+bitly_api
+nltk
+string
+rake_nltk
