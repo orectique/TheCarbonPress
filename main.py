@@ -83,7 +83,6 @@ def generateHashtags(keywords, source):
     return tags
 
 def payload(i, count, hashtags, bitURL, source, yday):
-    print('here')
     if count != 1:
         if i == 1:
             return(f"On {yday.strftime('%A, %d %b %Y')}, there were {count} articles that discussed decarbonization. We recommend starting here at this one from {source}. {hashtags} {bitURL}")
@@ -97,7 +96,8 @@ def payload(i, count, hashtags, bitURL, source, yday):
     
     return(f"On {yday.strftime('%A, %d %b %Y')}, there was one article that discussed decarbonization, from {source}. {hashtags} {bitURL}")
 
-def runBot():
+def runBot(request):
+
     newsapi = NewsApiClient(api_key=news_api)
 
     #yday = datetime.date.today() - datetime.timedelta(days=1)
@@ -134,9 +134,9 @@ def runBot():
             outText = payload(i, count, hashtags, bitURL, source, yday)
 
             client.create_tweet(text = outText)
+            print('Tweeted')
 
-            time.sleep(1800)
+            time.sleep(1)
 
-runBot()
 
     
