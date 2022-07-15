@@ -9,8 +9,6 @@ from dotenv import load_dotenv
 
 import bitly_api
 
-import nltk
-
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk import pos_tag
@@ -23,6 +21,10 @@ import random
 
 import time
 import re
+
+import plotly.express as px
+
+from pymongo import MongoClient
 
 rake = Rake()
 
@@ -102,7 +104,8 @@ def runBot(request):
 
     #yday = datetime.date.today() - datetime.timedelta(days=1)
 
-    yday = dt.strptime('2022-06-28', '%Y-%m-%d')
+    yday = dt.strptime('2022-07-09', '%Y-%m-%d')
+    today = dt.strptime('2022-07-10', '%Y-%m-%d')
 
     articles = newsapi.get_everything(
         q = query,
@@ -114,12 +117,53 @@ def runBot(request):
     )
 
     count = articles['totalResults']
-    
+
+    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+
+    auth.set_access_token(access_key, access_secret)
+
+    api = tweepy.API(auth)
+
+    client = MongoClient(f"mongodb+srv://orectique:{os.getenv('DB_P')}@orectique.ixj7l.mongodb.net/?retryWrites=true&w=majority")
+
+    db = client['decarbNews']
+
+    table = db['carbonArchive']
+
+    #if table.find({'date})
+
+    addedEntry = table.insert_one({'date': yday.strftime('%Y-%m-%d'), 'count' : count})
+
+    #if datetime.date.today().weekday() == 6:
+    if today.weekday() == 6:
+        cur = table.find()
+        dates = []
+        counts = []
+
+        for doc in cur:
+            if abs(today - dt.strptime(doc['date'], '%Y-%m-%d')) <= datetime.timedelta(days = 30):
+                dates.append(dt.strptime(doc['date'], '%Y-%m-%d'))
+                counts.append(doc['count'])
+
+        fig = px.line(
+                x = dates, 
+                y = counts, 
+                template='plotly_dark',
+                labels = {
+                    'x': 'Date',
+                    'y': 'Number of flagged artcles'
+                }, 
+                title=f'Publication Trends - Last {len(dates)} Days')
+        
+        fig.write_image('plot.png')
+
+        api.update_status_with_media(status=f'In the last {len(dates)} days there were {sum(counts)} articles that our filter flagged.', filename='plot.png')
+        
+        os.remove('plot.png')
+        
     if count != 0:
         bitly = bitly_api.Connection(access_token=bitly_token)
         
-        client = tweepy.Client(consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_key, access_token_secret=access_secret)
-
         for i in range(1, count + 1):
             article = articles['articles'][i - 1]
 
@@ -133,10 +177,13 @@ def runBot(request):
         
             outText = payload(i, count, hashtags, bitURL, source, yday)
 
-            client.create_tweet(text = outText)
+            api.update_status(status = outText)
             print('Tweeted')
 
             time.sleep(1)
 
+    else:
+        pass
 
-    
+runBot(0)    
+
