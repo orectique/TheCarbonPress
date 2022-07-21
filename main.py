@@ -14,6 +14,7 @@ from nltk.tokenize import word_tokenize
 from nltk import pos_tag
 
 import string
+import pandas as pd
 
 from rake_nltk import Rake
 
@@ -102,10 +103,9 @@ def runBot(request):
 
     newsapi = NewsApiClient(api_key=news_api)
 
-    #yday = datetime.date.today() - datetime.timedelta(days=1)
+    today = datetime.date.today()
 
-    yday = dt.strptime('2022-07-09', '%Y-%m-%d')
-    today = dt.strptime('2022-07-10', '%Y-%m-%d')
+    yday = today - datetime.timedelta(days=1)
 
     articles = newsapi.get_everything(
         q = query,
@@ -130,34 +130,36 @@ def runBot(request):
 
     table = db['carbonArchive']
 
-    #if table.find({'date})
+    table.update_one({'date': yday.strftime('%Y-%m-%d')}, { '$set' : {'count' : count}}, upsert=True)
 
-    addedEntry = table.insert_one({'date': yday.strftime('%Y-%m-%d'), 'count' : count})
-
-    #if datetime.date.today().weekday() == 6:
     if today.weekday() == 6:
         cur = table.find()
-        dates = []
-        counts = []
 
-        for doc in cur:
-            if abs(today - dt.strptime(doc['date'], '%Y-%m-%d')) <= datetime.timedelta(days = 30):
-                dates.append(dt.strptime(doc['date'], '%Y-%m-%d'))
-                counts.append(doc['count'])
+        frameDict = {
+    'dates' : [],
+    'counts' : []
+    }  
+
+        frameDict['dates'] = [datetime.datetime.strptime(doc['date'], '%Y-%m-%d') for doc in cur]
+        frameDict['counts'] = [doc['count'] for doc in cur]
+
+        frame = pd.DataFrame(frameDict)
+        frame = frame.sort_values(by='dates', ascending=True)
+
 
         fig = px.line(
-                x = dates, 
-                y = counts, 
+                x = frame['dates'], 
+                y = frame['counts'],  
                 template='plotly_dark',
                 labels = {
                     'x': 'Date',
                     'y': 'Number of flagged artcles'
                 }, 
-                title=f'Publication Trends - Last {len(dates)} Days')
+                title=f'Publication Trends - Last {len(frame)} Days')
         
         fig.write_image('plot.png')
 
-        api.update_status_with_media(status=f'In the last {len(dates)} days there were {sum(counts)} articles that our filter flagged.', filename='plot.png')
+        api.update_status_with_media(status=f"In the last {len(frame)} days there were {sum(frame['counts'])} articles that our filter flagged.", filename='plot.png')
         
         os.remove('plot.png')
         
@@ -178,7 +180,6 @@ def runBot(request):
             outText = payload(i, count, hashtags, bitURL, source, yday)
 
             api.update_status(status = outText)
-            print('Tweeted')
 
             time.sleep(1)
 
