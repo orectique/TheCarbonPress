@@ -1,7 +1,7 @@
 import tweepy
 
 from newsapi import NewsApiClient
-
+import datetime
 from datetime import datetime as dt
 
 import os
@@ -9,6 +9,9 @@ import os
 import bitly_api
 
 import nltk
+
+import tempfile
+import shutil
 
 nltk.download('averaged_perceptron_tagger')
 nltk.download('stopwords')
@@ -19,6 +22,7 @@ from nltk.tokenize import word_tokenize
 from nltk import pos_tag
 
 import string
+import pandas as pd
 
 from rake_nltk import Rake
 
@@ -26,6 +30,10 @@ import random
 
 import time
 import re
+
+import plotly.express as px
+
+from pymongo import MongoClient
 
 rake = Rake()
 
@@ -101,9 +109,9 @@ def runBot(request):
 
     newsapi = NewsApiClient(api_key=news_api)
 
-    #yday = datetime.date.today() - datetime.timedelta(days=1)
+    today = datetime.date.today()
 
-    yday = dt.strptime('2022-06-28', '%Y-%m-%d')
+    yday = today - datetime.timedelta(days=1)
 
     articles = newsapi.get_everything(
         q = query,
@@ -115,12 +123,55 @@ def runBot(request):
     )
 
     count = articles['totalResults']
-    
+
+    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+
+    auth.set_access_token(access_key, access_secret)
+
+    api = tweepy.API(auth)
+
+    client = MongoClient(f"mongodb+srv://orectique:{os.getenv('DB_P')}@orectique.ixj7l.mongodb.net/?retryWrites=true&w=majority")
+
+    db = client['decarbNews']
+
+    table = db['carbonArchive']
+
+    table.update_one({'date': yday.strftime('%Y-%m-%d')}, { '$set' : {'count' : count}}, upsert=True)
+
+    if today.weekday() == 6:
+        frameDict = {
+    'dates' : [],
+    'counts' : []
+    }  
+        dateCur = table.find()
+        frameDict['dates'] = [datetime.datetime.strptime(doc['date'], '%Y-%m-%d') for doc in dateCur]
+        
+        countCur = table.find()
+        frameDict['counts'] = [doc['count'] for doc in countCur]
+
+        frame = pd.DataFrame(frameDict)
+        frame = frame.sort_values(by='dates', ascending=True)
+
+        figLine = px.line(
+                x = frame['dates'], 
+                y = frame['counts'], 
+                template='plotly_dark',
+                labels = {
+                    'x': 'Date',
+                    'y': 'Number of flagged artcles'
+                }, 
+                title=f'Publication Trends - Last {len(frame)} Days')
+       
+        figLine.write_image('/tmp/plotLine.png')
+
+        api.update_status_with_media(status=f"In the last {len(frame)} days there were {sum(frame['counts'])} articles that our filter flagged.", filename='/tmp/plotLine.png')
+                
+        os.remove('/tmp/plotLine.png')
+
+        
     if count != 0:
         bitly = bitly_api.Connection(access_token=bitly_token)
         
-        client = tweepy.Client(consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_key, access_token_secret=access_secret)
-
         for i in range(1, count + 1):
             article = articles['articles'][i - 1]
 
@@ -134,6 +185,9 @@ def runBot(request):
         
             outText = payload(i, count, hashtags, bitURL, source, yday)
 
-            client.create_tweet(text = outText)
+            api.update_status(status = outText)
 
-            time.sleep(1800)
+            time.sleep(10)
+
+    else:
+        pass

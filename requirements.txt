@@ -1,7 +1,12 @@
+# Function dependencies, for example:
+# package>=version
 tweepy
-newsapi 
-dotenv
-bitly_api
+newsapi-python
+bitly-api-py3
 nltk
-string
-rake_nltk
+rake-nltk
+regex
+pandas
+plotly
+pymongo[srv]
+kaleido
