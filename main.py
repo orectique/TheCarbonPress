@@ -109,7 +109,9 @@ def runBot(request):
 
     newsapi = NewsApiClient(api_key=news_api)
 
-    today = datetime.date.today()
+    #today = datetime.date.today()
+
+    today = datetime.datetime(2022, 7, 24)
 
     yday = today - datetime.timedelta(days=1)
 
@@ -136,23 +138,29 @@ def runBot(request):
 
     table = db['carbonArchive']
 
-    table.update_one({'date': yday.strftime('%Y-%m-%d')}, { '$set' : {'count' : count}}, upsert=True)
+    sourcesDB = [article['source']['name'] for article in articles['articles']]
+
+    table.update_one({'date': yday}, { '$set' : {'count' : count, 'source': sourcesDB}}, upsert=True)
 
     if today.weekday() == 6:
         frameDict = {
     'dates' : [],
     'counts' : []
     }  
-        dateCur = table.find()
-        frameDict['dates'] = [datetime.datetime.strptime(doc['date'], '%Y-%m-%d') for doc in dateCur]
+
+        downRange = yday - datetime.timedelta(days=20)
+
+        dateCur = table.find({'date' : { '$gt': downRange }})
+        frameDict['dates'] = [doc['date'] for doc in dateCur]
         
-        countCur = table.find()
+        countCur = table.find({'date' : { '$gt': downRange }})
         frameDict['counts'] = [doc['count'] for doc in countCur]
+
 
         frame = pd.DataFrame(frameDict)
         frame = frame.sort_values(by='dates', ascending=True)
 
-        fig = px.line(
+        figLine = px.line(
                 x = frame['dates'], 
                 y = frame['counts'], 
                 template='plotly_dark',
@@ -161,13 +169,34 @@ def runBot(request):
                     'y': 'Number of flagged artcles'
                 }, 
                 title=f'Publication Trends - Last {len(frame)} Days')
-        
-        fig.write_image('plot.png')
+       
+        figLine.write_image('./GraphDump/plotLine.png')
 
-        api.update_status_with_media(status=f"In the last {len(frame)} days there were {sum(frame['counts'])} articles that our filter flagged.", filename='plot.png')
+        api.update_status_with_media(status=f"In the last {len(frame)} days there were {sum(frame['counts'])} articles that our filter flagged.", filename='./GraphDump/plotLine.png')
                 
-        os.remove('plot.png')
+        os.remove('./GraphDump/plotLine.png')
+
+        sourceCur = table.find({'date' : { '$gt': downRange }})
+
+        sourcesPie = []
+
+        for doc in sourceCur:
+            for source in doc['source']:
+                sourcesPie.append(source)
+
+        sourcesPie = pd.DataFrame(sourcesPie, columns=['Source'])
+        sourcesPie = sourcesPie.value_counts()
+        sourcesPie = sourcesPie.reset_index()
+        sourcesPie.columns = ['Source', 'Count']
+
+        figPie = px.pie(sourcesPie, values = 'Count', names = 'Source', template = 'plotly_dark', title = 'Distribution of Sources (last 30 days)', hole = 0.5, color_discrete_sequence=px.colors.diverging.Fall)
+
+        figPie.write_image('./GraphDump/plotPie.png')
+
+        api.update_status_with_media(status=f"In the last {len(frame)} days, there were {sum(frame['counts'])} articles that our filter flagged. Here is a breakdown of the sources that were used.", filename='./GraphDump/plotPie.png')
         
+        os.remove('./GraphDump/plotPie.png')
+
     if count != 0:
         bitly = bitly_api.Connection(access_token=bitly_token)
         
@@ -186,7 +215,6 @@ def runBot(request):
 
             api.update_status(status = outText)
 
-            time.sleep(1800)
+            time.sleep(10)
 
-    else:
-        pass
+    return 'OK'

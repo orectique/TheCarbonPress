@@ -1,1 +1,2 @@
-Distribution of news sources
+Distribution of news sources - Pie
+Limit Sunday Plot to last 30 days.
