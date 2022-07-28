@@ -1,1 +1,4 @@
 theme: jekyll-theme-minimal
+title: The Carbon Press
+description: A Twitter Bot that explores and tracks news articles discussing decarbonization.
+logo: /assets/carbonPressLogo-1.png
