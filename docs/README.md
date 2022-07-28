@@ -18,3 +18,5 @@ The Carbon Press is a Twitter Bot that, well, tweets out articles about decarbon
 - NBC
 - Time
 - Reuters
+
+<a class="twitter-timeline" href="https://twitter.com/TheCarbonPress?ref_src=twsrc%5Etfw">Tweets by TheCarbonPress</a> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
