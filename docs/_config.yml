@@ -1,8 +1,8 @@
-#theme: jekyll-theme-minimal
+theme: jekyll-theme-minimal
 
-theme: jekyll-theme-chirpy
+# theme: jekyll-theme-chirpy
 title: The Carbon Press
 description: A Twitter Bot that explores and tracks news articles discussing decarbonization. <a href="https://twitter.com/TheCarbonPress?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false">Follow @TheCarbonPress</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-avatar: /assets/carbonPressLogo-1.png
-# logo: /assets/carbonPressLogo-1.png
-theme_mode: dark
+# avatar: /assets/carbonPressLogo-1.png
+logo: /assets/carbonPressLogo-1.png
+# theme_mode: dark
