@@ -5,14 +5,15 @@ import datetime
 from datetime import datetime as dt
 
 import os
+from dotenv import load_dotenv
 
 import bitly_api
 
-#import nltk
+import nltk
 
-#nltk.download('averaged_perceptron_tagger')
-#nltk.download('stopwords')
-#nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('stopwords')
+nltk.download('punkt')
 
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -28,10 +29,6 @@ import random
 import time
 import re
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 import plotly.express as px
 
 from pymongo import MongoClient
@@ -39,6 +36,8 @@ from pymongo import MongoClient
 rake = Rake()
 
 stop_words = set(stopwords.words('english'))
+
+load_dotenv()
 
 consumer_key = os.environ.get('CONSUMER_KEY')
 consumer_secret = os.environ.get('CONSUMER_SECRET')
@@ -64,7 +63,6 @@ listTexts = [
 ]
 
 def raking(text):
-    print('raking')
     text = text.translate(str.maketrans('', '', string.punctuation))
 
     rake.extract_keywords_from_text(text)
@@ -76,7 +74,6 @@ def raking(text):
     return [token for token in word_tokenize(''.join(phrases)) if ((not token.lower() in stop_words) and (len(token) > 1) and (not pos_tag([token])[0][1] in ['JJ', 'JJR', 'JJS', 'DT', 'PDT', 'PRP', 'RB', 'RBR', 'RBS', 'RP', 'WRB', 'VBZ', 'VBP', 'VBN', 'VBG', 'VBD', 'VB']))]
 
 def generateHashtags(keywords, source):
-    print('generating hashtags')
     pattern = re.compile(r'\s+')
     source = re.sub(pattern, '', source.lower())
 
@@ -95,7 +92,6 @@ def generateHashtags(keywords, source):
     return tags
 
 def payload(i, count, hashtags, bitURL, source, yday):
-    print('payload')
     if count != 1:
         if i == 1:
             return(f"On {yday.strftime('%A, %d %b %Y')}, there were {count} articles that discussed decarbonization. We recommend starting here at this one from {source}. {hashtags} {bitURL}")
@@ -115,19 +111,22 @@ def runBot(request):
 
     today = datetime.datetime.today()
 
+    #today = datetime.datetime(2022, 7, 30)
+
     yday = today - datetime.timedelta(days=1)
+
+    yesterday = yday.strftime('%Y-%m-%d')
 
     articles = newsapi.get_everything(
         q = query,
         sources = sources,
-        from_param = yday, 
-        to = yday,
+        from_param = yesterday, 
+        to = yesterday,
         language = 'en',
         sort_by = 'popularity'
     )
 
     count = articles['totalResults']
-
     print(count)
 
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
@@ -152,13 +151,14 @@ def runBot(request):
     'counts' : []
     }  
 
-        downRange = yday - datetime.timedelta(days=31)
+        downRange = yday - datetime.timedelta(days=20)
 
         dateCur = table.find({'date' : { '$gt': downRange }})
         frameDict['dates'] = [doc['date'] for doc in dateCur]
         
         countCur = table.find({'date' : { '$gt': downRange }})
         frameDict['counts'] = [doc['count'] for doc in countCur]
+
 
         frame = pd.DataFrame(frameDict)
         frame = frame.sort_values(by='dates', ascending=True)
@@ -173,11 +173,11 @@ def runBot(request):
                 }, 
                 title=f'Publication Trends - Last {len(frame)} Days')
        
-        figLine.write_image('/tmp/plotLine.png')
+        figLine.write_image('./GraphDump/plotLine.png')
 
-        api.update_status_with_media(status=f"In the last {len(frame)} days there were {sum(frame['counts'])} articles that our filter flagged.", filename='/tmp/plotLine.png')
+        api.update_status_with_media(status=f"In the last {len(frame)} days there were {sum(frame['counts'])} articles that our filter flagged.", filename='./GraphDump/plotLine.png')
                 
-        os.remove('/tmp/plotLine.png')
+        os.remove('./GraphDump/plotLine.png')
 
         sourceCur = table.find({'date' : { '$gt': downRange }})
 
@@ -194,11 +194,11 @@ def runBot(request):
 
         figPie = px.pie(sourcesPie, values = 'Count', names = 'Source', template = 'plotly_dark', title = 'Distribution of Sources (last 30 days)', hole = 0.5, color_discrete_sequence=px.colors.diverging.Fall)
 
-        figPie.write_image('/tmp/plotPie.png')
+        figPie.write_image('./GraphDump/plotPie.png')
 
-        api.update_status_with_media(status=f"In the last {len(frame)} days, there were {sum(frame['counts'])} articles that our filter flagged. Here is a breakdown of the sources that were used.", filename='/tmp/plotPie.png')
+        api.update_status_with_media(status=f"In the last {len(frame)} days, there were {sum(frame['counts'])} articles that our filter flagged. Here is a breakdown of the sources that were used.", filename='./GraphDump/plotPie.png')
         
-        os.remove('/tmp/plotPie.png')
+        os.remove('./GraphDump/plotPie.png')
 
     if count != 0:
         bitly = bitly_api.Connection(access_token=bitly_token)
@@ -217,7 +217,6 @@ def runBot(request):
             outText = payload(i, count, hashtags, bitURL, source, yday)
 
             api.update_status(status = outText)
-            print('tweeted')
 
             time.sleep(10)
 
