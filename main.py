@@ -51,7 +51,9 @@ news_api = os.environ.get('NEWS_API')
 bitly_token = os.environ.get('BITLY_TOKEN')
 
 sources = 'al-jazeera-english, associated-press, bloomberg, business-insider, cbs-news, cnn, fortune, google-news, msnbc, nbc-news, reuter, the-huffington-post, the-verge, the-wall-street-journal, the-washington-post, the-washington-times, time'
-query = 'carbon AND (emissions OR climate OR gas OR coal OR energy OR green OR oil OR fuel OR fuels OR power) AND (decarbonize OR decarbonization OR decarbonise OR decarbonisation OR decarboniznig OR decarbonising)'
+#query = 'carbon AND (emissions OR climate OR gas OR coal OR energy OR green OR oil OR fuel OR fuels OR power) AND (decarbonize OR decarbonization OR decarbonise OR decarbonisation OR decarboniznig OR decarbonising)'
+
+query = 'carbon AND (emissions OR climate OR gas OR coal OR energy OR green OR oil OR fuel OR fuels OR power) AND (tax OR tariff OR pricing OR inflation OR decarbonize OR decarbonization OR decarbonise OR decarbonisation OR decarboniznig OR decarbonising)'
 
 listTexts = [
     '{} {} / {} - Followed by this one from {}. {} {}',
@@ -113,7 +115,9 @@ def runBot(request):
 
     newsapi = NewsApiClient(api_key=news_api)
 
-    today = datetime.datetime.today()
+    #today = datetime.datetime.today()
+
+    today = datetime.datetime(2022, 8, 5)
 
     yday = today - datetime.timedelta(days=1)
 
@@ -220,6 +224,8 @@ def runBot(request):
             print('tweeted')
 
             time.sleep(10)
+
+    print('done')
 
     return 'OK'
 
