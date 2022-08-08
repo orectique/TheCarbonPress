@@ -117,7 +117,7 @@ def runBot(request):
 
     #today = datetime.datetime.today()
 
-    today = datetime.datetime(2022, 8, 6)
+    today = datetime.datetime(2022, 8, 8)
 
     yday = today - datetime.timedelta(days=1)
 
@@ -177,11 +177,11 @@ def runBot(request):
                 }, 
                 title=f'Publication Trends - Last {len(frame)} Days')
        
-        figLine.write_image('/tmp/plotLine.png')
+        figLine.write_image('./dump/plotLine.png')
 
-        api.update_status_with_media(status=f"In the last {len(frame)} days there were {sum(frame['counts'])} articles that our filter flagged.", filename='/tmp/plotLine.png')
+        api.update_status_with_media(status=f"In the last {len(frame)} days there were {sum(frame['counts'])} articles that our filter flagged.", filename='./dump/plotLine.png')
                 
-        os.remove('/tmp/plotLine.png')
+        os.remove('./dump/plotLine.png')
 
         sourceCur = table.find({'date' : { '$gt': downRange }})
 
@@ -198,11 +198,11 @@ def runBot(request):
 
         figPie = px.pie(sourcesPie, values = 'Count', names = 'Source', template = 'plotly_dark', title = 'Distribution of Sources (last 30 days)', hole = 0.5, color_discrete_sequence=px.colors.diverging.Fall)
 
-        figPie.write_image('/tmp/plotPie.png')
+        figPie.write_image('./dump/plotPie.png')
 
-        api.update_status_with_media(status=f"In the last {len(frame)} days, there were {sum(frame['counts'])} articles that our filter flagged. Here is a breakdown of the sources that were used.", filename='/tmp/plotPie.png')
+        api.update_status_with_media(status=f"In the last {len(frame)} days, there were {sum(frame['counts'])} articles that our filter flagged. Here is a breakdown of the sources that were used.", filename='./dump/plotPie.png')
         
-        os.remove('/tmp/plotPie.png')
+        os.remove('./dump/plotPie.png')
 
     if count != 0:
         bitly = bitly_api.Connection(access_token=bitly_token)
