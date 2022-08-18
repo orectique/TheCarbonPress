@@ -117,7 +117,7 @@ def runBot(request):
 
     #today = datetime.datetime.today()
 
-    today = datetime.datetime(2022, 8, 12)
+    today = datetime.datetime(2022, 8, 14)
 
     yday = today - datetime.timedelta(days=1)
 
@@ -132,7 +132,7 @@ def runBot(request):
 
     count = articles['totalResults']
 
-    print(count)
+    print(yday, count)
 
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 
@@ -140,9 +140,11 @@ def runBot(request):
 
     api = tweepy.API(auth)
 
+    print(api)
+
     client = MongoClient(f"mongodb+srv://orectique:{os.getenv('DB_P')}@orectique.ixj7l.mongodb.net/?retryWrites=true&w=majority")
 
-    db = client['decarbNews']
+    db = client['decarbNews']   
 
     table = db['carbonArchive']
 
