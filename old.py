@@ -47,7 +47,7 @@ news_api = os.environ.get('NEWS_API')
 bitly_token = os.environ.get('BITLY_TOKEN')
 
 sources = 'al-jazeera-english, associated-press, bloomberg, business-insider, cbs-news, cnn, fortune, google-news, msnbc, nbc-news, reuter, the-huffington-post, the-verge, the-wall-street-journal, the-washington-post, the-washington-times, time'
-query = 'carbon AND (emissions OR climate OR gas OR coal OR energy OR green OR oil OR fuel OR fuels OR power) AND (decarbonize OR decarbonization OR decarbonise OR decarbonisation OR decarboniznig OR decarbonising)'
+query = 'carbon AND (emissions OR climate OR gas OR coal OR energy OR green OR oil OR fuel OR fuels OR power) AND (tax OR tariff OR pricing OR inflation OR decarbonize OR decarbonization OR decarbonise OR decarbonisation OR decarboniznig OR decarbonising)'
 
 listTexts = [
     '{} {} / {} - Followed by this one from {}. {} {}',
@@ -183,7 +183,7 @@ def runBot(request):
         sourcesPie = sourcesPie.reset_index()
         sourcesPie.columns = ['Source', 'Count']
 
-        figPie = px.pie(sourcesPie, values = 'Count', names = 'Source', template = 'plotly_dark', title = 'Distribution of Sources (last 30 days)', hole = 0.5, color_discrete_sequence=px.colors.diverging.Fall)
+        figPie = px.pie(sourcesPie, values = 'Count', names = 'Source', template = 'plotly_dark', title = f'Distribution of Sources (last {len(frame)} days)', hole = 0.5, color_discrete_sequence=px.colors.diverging.Fall)
 
         figPie.write_image('/tmp/plotPie.png')
 

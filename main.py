@@ -117,7 +117,7 @@ def runBot(request):
 
     #today = datetime.datetime.today()
 
-    today = datetime.datetime(2022, 8, 14)
+    today = datetime.datetime(2022, 8, request)
 
     yday = today - datetime.timedelta(days=1)
 
@@ -198,7 +198,7 @@ def runBot(request):
         sourcesPie = sourcesPie.reset_index()
         sourcesPie.columns = ['Source', 'Count']
 
-        figPie = px.pie(sourcesPie, values = 'Count', names = 'Source', template = 'plotly_dark', title = 'Distribution of Sources (last 30 days)', hole = 0.5, color_discrete_sequence=px.colors.diverging.Fall)
+        figPie = px.pie(sourcesPie, values = 'Count', names = 'Source', template = 'plotly_dark', title = f'Distribution of Sources (last {len(frame)} days)', hole = 0.5, color_discrete_sequence=px.colors.diverging.Fall)
 
         figPie.write_image('./dump/plotPie.png')
 
@@ -231,4 +231,5 @@ def runBot(request):
 
     return 'OK'
 
-runBot(0)
+for i in range(14, 21):
+    runBot(i)
