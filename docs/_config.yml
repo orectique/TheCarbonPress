@@ -1,4 +1,4 @@
-remote-theme: jekyll-theme-chirpy
+remote_theme: cotes202/jekyll-theme-chirpy
 
 baseurl: '/TheCarbonPress'
 lang: en
