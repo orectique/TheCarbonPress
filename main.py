@@ -231,5 +231,5 @@ def runBot(request):
 
     return 'OK'
 
-for i in range(14, 21):
-    runBot(i)
+
+runBot(22)
