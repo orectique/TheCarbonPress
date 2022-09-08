@@ -28,15 +28,14 @@ import random
 import time
 import re
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 import plotly.express as px
 
 from pymongo import MongoClient
 
 rake = Rake()
+
+from dotenv import load_dotenv
+load_dotenv()
 
 stop_words = set(stopwords.words('english'))
 
@@ -51,9 +50,10 @@ news_api = os.environ.get('NEWS_API')
 bitly_token = os.environ.get('BITLY_TOKEN')
 
 sources = 'al-jazeera-english, associated-press, bloomberg, business-insider, cbs-news, cnn, fortune, google-news, msnbc, nbc-news, reuter, the-huffington-post, the-verge, the-wall-street-journal, the-washington-post, the-washington-times, time'
-#query = 'carbon AND (emissions OR climate OR gas OR coal OR energy OR green OR oil OR fuel OR fuels OR power) AND (decarbonize OR decarbonization OR decarbonise OR decarbonisation OR decarboniznig OR decarbonising)'
+#query = 'carbon AND (emissions OR climate OR gas OR coal OR energy OR green OR oil OR fuel OR fuels OR power) AND (tax OR tariff OR pricing OR inflation OR decarbonize OR decarbonization OR decarbonise OR decarbonisation OR decarboniznig OR decarbonising)'
 
-query = 'carbon AND (emissions OR climate OR gas OR coal OR energy OR green OR oil OR fuel OR fuels OR power) AND (tax OR tariff OR pricing OR inflation OR decarbonize OR decarbonization OR decarbonise OR decarbonisation OR decarboniznig OR decarbonising)'
+query = 'carbon AND (emissions OR climate OR gas OR coal OR energy OR green OR oil OR fuel OR fuels OR power) AND (decarbon OR decarbonize OR decarbonization OR decarbonise OR decarbonisation OR decarboniznig OR decarbonising)'
+
 
 listTexts = [
     '{} {} / {} - Followed by this one from {}. {} {}',
@@ -66,7 +66,6 @@ listTexts = [
 ]
 
 def raking(text):
-    print('raking')
     text = text.translate(str.maketrans('', '', string.punctuation))
 
     rake.extract_keywords_from_text(text)
@@ -78,7 +77,6 @@ def raking(text):
     return [token for token in word_tokenize(''.join(phrases)) if ((not token.lower() in stop_words) and (len(token) > 1) and (not pos_tag([token])[0][1] in ['JJ', 'JJR', 'JJS', 'DT', 'PDT', 'PRP', 'RB', 'RBR', 'RBS', 'RP', 'WRB', 'VBZ', 'VBP', 'VBN', 'VBG', 'VBD', 'VB']))]
 
 def generateHashtags(keywords, source):
-    print('generating hashtags')
     pattern = re.compile(r'\s+')
     source = re.sub(pattern, '', source.lower())
 
@@ -97,7 +95,6 @@ def generateHashtags(keywords, source):
     return tags
 
 def payload(i, count, hashtags, bitURL, source, yday):
-    print('payload')
     if count != 1:
         if i == 1:
             return(f"On {yday.strftime('%A, %d %b %Y')}, there were {count} articles that discussed decarbonization. We recommend starting here at this one from {source}. {hashtags} {bitURL}")
@@ -115,11 +112,10 @@ def runBot(request):
 
     newsapi = NewsApiClient(api_key=news_api)
 
-    #today = datetime.datetime.today()
+    today1 = datetime.datetime.today()
+    today2 = datetime.date.today() - datetime.timedelta(days=1)
 
-    today = datetime.datetime(2022, 8, request)
-
-    yday = today - datetime.timedelta(days=1)
+    yday = today2 - datetime.timedelta(days=1)
 
     articles = newsapi.get_everything(
         q = query,
@@ -132,7 +128,7 @@ def runBot(request):
 
     count = articles['totalResults']
 
-    print(yday, count)
+    print(articles)
 
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 
@@ -140,19 +136,18 @@ def runBot(request):
 
     api = tweepy.API(auth)
 
-    print(api)
+    #client = MongoClient(f"mongodb+srv://orectique:{os.getenv('DB_P')}@orectique.ixj7l.mongodb.net/?retryWrites=true&w=majority")
 
-    client = MongoClient(f"mongodb+srv://orectique:{os.getenv('DB_P')}@orectique.ixj7l.mongodb.net/?retryWrites=true&w=majority")
+    #db = client['decarbNews']
 
-    db = client['decarbNews']   
-
-    table = db['carbonArchive']
+    #table = db['carbonArchive']
 
     sourcesDB = [article['source']['name'] for article in articles['articles']]
 
-    table.update_one({'date': yday}, { '$set' : {'count' : count, 'source': sourcesDB}}, upsert=True)
+    print('db')
+    #table.update_one({'date': yday}, { '$set' : {'count' : count, 'source': sourcesDB}}, upsert=True)
 
-    if today.weekday() == 6:
+    if today2.weekday() == 6:
         frameDict = {
     'dates' : [],
     'counts' : []
@@ -160,10 +155,10 @@ def runBot(request):
 
         downRange = yday - datetime.timedelta(days=31)
 
-        dateCur = table.find({'date' : { '$gt': downRange }})
+        dateCur = []#table.find({'date' : { '$gt': downRange }})
         frameDict['dates'] = [doc['date'] for doc in dateCur]
         
-        countCur = table.find({'date' : { '$gt': downRange }})
+        countCur = []#table.find({'date' : { '$gt': downRange }})
         frameDict['counts'] = [doc['count'] for doc in countCur]
 
         frame = pd.DataFrame(frameDict)
@@ -181,11 +176,12 @@ def runBot(request):
        
         figLine.write_image('./dump/plotLine.png')
 
-        api.update_status_with_media(status=f"In the last {len(frame)} days there were {sum(frame['counts'])} articles that our filter flagged.", filename='./dump/plotLine.png')
+        print('tweet')
+        #api.update_status_with_media(status=f"In the last {len(frame)} days there were {sum(frame['counts'])} articles that our filter flagged.", filename='./dump/plotLine.png')
                 
         os.remove('./dump/plotLine.png')
 
-        sourceCur = table.find({'date' : { '$gt': downRange }})
+        sourceCur = []#table.find({'date' : { '$gt': downRange }})
 
         sourcesPie = []
 
@@ -201,9 +197,9 @@ def runBot(request):
         figPie = px.pie(sourcesPie, values = 'Count', names = 'Source', template = 'plotly_dark', title = f'Distribution of Sources (last {len(frame)} days)', hole = 0.5, color_discrete_sequence=px.colors.diverging.Fall)
 
         figPie.write_image('./dump/plotPie.png')
-        
-        print('tweet')    
-        api.update_status_with_media(status=f"In the last {len(frame)} days, there were {sum(frame['counts'])} articles that our filter flagged. Here is a breakdown of the sources that were used.", filename='./dump/plotPie.png')
+
+        print('tweet')
+        #api.update_status_with_media(status=f"In the last {len(frame)} days, there were {sum(frame['counts'])} articles that our filter flagged. Here is a breakdown of the sources that were used.", filename='./dump/plotPie.png')
         
         os.remove('./dump/plotPie.png')
 
@@ -223,13 +219,11 @@ def runBot(request):
         
             outText = payload(i, count, hashtags, bitURL, source, yday)
 
-            api.update_status(status = outText)
-            print('tweeted')
+            print('tweet')
+            #api.update_status(status = outText)
 
             time.sleep(10)
 
-    print('done')
-
     return 'OK'
 
-runBot(28)
+runBot(0)
