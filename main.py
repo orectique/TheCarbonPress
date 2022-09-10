@@ -117,7 +117,7 @@ def runBot(request):
 
     #today = datetime.datetime.today()
 
-    today = datetime.datetime(2022, 8, request)
+    today = datetime.datetime(2022, 9, request)
 
     yday = today - datetime.timedelta(days=1)
 
@@ -232,4 +232,6 @@ def runBot(request):
 
     return 'OK'
 
-runBot(28)
+#for i in range(5, 9):
+    #runBot(i)
+runBot(9)
